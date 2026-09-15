@@ -7,6 +7,12 @@ and this project follows Semantic Versioning.
 
 ## [Unreleased]
 
+### Fixed
+
+- Removed an invalid `script.properties` OAuth scope from the Apps Script manifest.
+
+Changes that are currently being prepared for the next release.
+
 Changes that are currently being prepared for the next release.
 
 ## [1.0.0] - 2026-09-15
