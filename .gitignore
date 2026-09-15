@@ -1,0 +1,23 @@
+# Google Apps Script local files
+.clasp.json
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.log
+
+# Local environment files
+.env
+.env.*
+
+# Credentials and secrets
+credentials.json
+token.json
+secrets.json
