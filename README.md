@@ -1,111 +1,133 @@
 # Gmail ↔ Jira Bidirectional Integration
 
-A bidirectional integration between Gmail and Jira built with Google Apps Script.
+A Google Apps Script integration that connects Gmail and Jira to create a bidirectional email-to-ticket workflow.
 
-The project automates the synchronization between email conversations and Jira issues, allowing email-based workflows to be managed directly from Jira while preserving the original Gmail conversation.
+Incoming emails can automatically create Jira issues, email replies can become Jira comments, and Jira comments can be sent back to the original email sender while preserving the Gmail conversation thread.
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Google Apps Script](https://img.shields.io/badge/Google%20Apps%20Script-4285F4)
+![Jira](https://img.shields.io/badge/Jira-0052CC)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
 
 ## Features
 
-* 📧 Automatically creates Jira issues from incoming emails.
-* 💬 Converts subsequent email replies into Jira comments.
-* 🔄 Sends Jira comments back to the original email sender.
-* 🧵 Preserves the original Gmail conversation thread.
-* 📎 Transfers email attachments to Jira.
-* ⚙️ Runs automatically using Google Apps Script time-based triggers.
-* 🛡️ Prevents duplicate processing.
-* 🔁 Prevents synchronization loops.
-* 💾 Stores Gmail/Jira relationship data using Google Apps Script Properties.
-* 🔐 Keeps the Jira API token outside the source code.
+- Automatic Jira issue creation from incoming Gmail messages.
+- Email replies converted into Jira comments.
+- Jira comments sent back to the original email sender.
+- Gmail thread preservation.
+- Jira attachment support.
+- Duplicate message prevention.
+- Email/Jira loop prevention.
+- Configurable email processing.
+- Automated execution using Google Apps Script time-based triggers.
+- Secure Jira API token storage using Script Properties.
+- Jira REST API integration.
+- Lightweight architecture with no dedicated backend server.
+
+---
 
 ## Architecture
 
-```text
-             Incoming email
-                    │
-                    ▼
-              ┌──────────┐
-              │  Gmail   │
-              └────┬─────┘
-                   │
-                   ▼
-        ┌─────────────────────┐
-        │   Google Apps       │
-        │       Script        │
-        └──────────┬──────────┘
-                   │
-                   ▼
-              ┌──────────┐
-              │   Jira   │
-              └────┬─────┘
-                   │
-             Jira comment
-                   │
-                   ▼
-        ┌─────────────────────┐
-        │   Google Apps       │
-        │       Script        │
-        └──────────┬──────────┘
-                   │
-                   ▼
-              ┌──────────┐
-              │  Gmail   │
-              │ same     │
-              │ thread   │
-              └──────────┘
-```
+The integration uses Google Apps Script as the communication layer between Gmail and Jira.
 
-## How it works
 
-### 1. Email → Jira
+External Email Sender
+        │
+        ▼
+      Gmail
+        │
+        ▼
+ Google Apps Script
+        │
+        ├──────────────► Jira REST API
+        │                    │
+        │                    ▼
+        │                Jira Issue
+        │                    │
+        │                    ▼
+        │              Jira Comments
+        │
+        ◄────────────────────┘
+        │
+        ▼
+      Gmail
+        │
+        ▼
+External Email Sender
 
-When a new email is detected, the integration:
+For a detailed technical description, see:
 
-1. Identifies the Gmail conversation.
-2. Creates a Jira issue if the conversation has not been processed.
-3. Stores the relationship between the Gmail thread and Jira issue.
-4. Processes email attachments.
-5. Stores the original sender and email `Message-ID`.
+Architecture documentation
 
-### 2. Email reply → Jira comment
+How It Works
+1. Incoming Email → Jira
 
-Subsequent messages belonging to the same Gmail conversation are synchronized with the associated Jira issue as comments.
+An incoming email is detected in Gmail.
 
-Messages are tracked individually to prevent duplicate processing.
+If the Gmail thread is not already associated with a Jira issue, the integration creates a new Jira Task.
 
-### 3. Jira comment → Email
+The integration stores the relationship between the Gmail thread and Jira issue using Google Apps Script Script Properties.
 
-Comments created directly in Jira are sent back to the original email sender.
+Example:
 
-The outgoing message uses:
+Gmail Thread
+     │
+     └──► Jira Issue S9S-123
+2. Email Reply → Jira Comment
 
-* Gmail `threadId`
-* `Message-ID`
-* `In-Reply-To`
-* `References`
+When a reply is added to an existing Gmail conversation:
 
-This allows the response to remain associated with the original Gmail conversation.
+The message is detected.
+The associated Jira issue is identified.
+The email body is cleaned.
+The message is added as a Jira comment.
+Attachments are uploaded to Jira.
+The message is marked as processed.
 
-### 4. Loop prevention
+This prevents the same email from being processed multiple times.
 
-Comments generated from incoming email are marked internally so they are not sent back to the sender as new email messages.
+3. Jira Comment → Email
 
-This prevents an infinite synchronization loop between Gmail and Jira.
+When a Jira comment is created manually:
 
-## Technologies
+The associated Gmail thread is identified.
+The original sender is retrieved.
+The Jira comment is converted into an email.
+Gmail threading information is preserved.
+The email is sent to the original sender.
 
-* Google Apps Script
-* Gmail API
-* Gmail threads and messages
-* Jira REST API
-* JavaScript
-* Google Apps Script Properties
-* Jira API tokens
+The reply is inserted into the existing Gmail conversation rather than creating an unrelated email thread.
 
-## Configuration
+4. Loop Prevention
 
-Before using the integration, configure the environment-specific values:
+Comments created from incoming emails receive a configurable prefix:
 
-```javascript
+Inbound email reply:
+
+When Jira comments are processed, comments containing this prefix are not sent back by email.
+
+This prevents an email → Jira → email → Jira feedback loop.
+
+Technologies
+Google Apps Script
+Gmail API
+GmailApp
+Jira Cloud REST API
+JavaScript
+Script Properties
+Time-based triggers
+Configuration
+
+The public repository does not contain real credentials.
+
+Copy the example configuration and replace the placeholders with your own environment values:
+
+configuration.example.gs
+
+Example:
+
 const CONFIG = {
   JIRA_URL: 'https://YOUR-DOMAIN.atlassian.net',
   JIRA_PROJECT: 'YOUR_PROJECT',
@@ -113,71 +135,164 @@ const CONFIG = {
   GMAIL_FROM: 'your-email@example.com',
   JIRA_EMAIL: 'your-email@example.com'
 };
-```
+Jira API Token
 
-The Jira API token should **not** be stored in the source code.
+The Jira API token must not be stored in the source code.
 
-It should be stored using Google Apps Script Script Properties.
+Store it in Google Apps Script Script Properties:
 
-Example property:
+JIRA_API_TOKEN
 
-```text
-JIRA_API_TOKEN = YOUR_JIRA_API_TOKEN
-```
+The application retrieves the token at runtime.
 
-## Automation
+Never commit real credentials, API tokens, passwords, or private configuration values to GitHub.
 
-The integration can be configured to run automatically using Google Apps Script time-based triggers.
+Gmail API
 
-The recommended setup runs:
+The project uses the Gmail Advanced Service.
 
-* Email processing every 5 minutes.
-* Jira comment processing every 5 minutes.
+The required service is configured in:
 
-This allows the integration to operate continuously without manual execution.
+appsscript.json
 
-## Security
+The Gmail API is used to send replies while preserving the Gmail thread relationship.
 
-Do not commit any of the following to GitHub:
+Automation
 
-* Jira API tokens
-* Passwords
-* Personal email addresses
-* Private Jira URLs
-* Private customer information
-* Real message contents
-* Production configuration
+The project uses Google Apps Script time-based triggers.
 
-Use placeholder values in the public repository.
+Two functions are executed automatically:
 
-## Project structure
+procesarCorreos()
+        │
+        └── Gmail → Jira
 
-```text
+procesarComentariosJira()
+        │
+        └── Jira → Gmail
+
+The default interval is five minutes.
+
+To install the triggers, run:
+
+instalarAutomatizacion()
+
+This only needs to be executed once.
+
+The function removes previous triggers before creating new ones to prevent duplicate scheduled executions.
+
+State Management
+
+The integration uses Script Properties to maintain lightweight processing state.
+
+Examples:
+
+THREAD_<gmailThreadId>
+THREAD_FROM_<gmailThreadId>
+THREAD_MESSAGE_ID_<gmailThreadId>
+MSG_<gmailMessageId>
+JIRA_COMMENT_SENT_<jiraCommentId>
+
+This allows the integration to:
+
+Associate Gmail threads with Jira issues.
+Remember the original sender.
+Preserve email threading information.
+Prevent duplicate message processing.
+Prevent duplicate Jira comment emails.
+Attachments
+
+Attachments received through Gmail are uploaded to the corresponding Jira issue.
+
+This allows the Jira ticket to retain the relevant files from the original email conversation.
+
+Project Structure
 gmail-jira-bidirectional-integration/
 │
 ├── README.md
-├── Code.gs
-├── appsscript.json
-├── configuration.example.js
+├── LICENSE
+├── CHANGELOG.md
+├── .gitignore
+│
+├── src/
+│   ├── Code.gs
+│   ├── configuration.example.gs
+│   └── appsscript.json
 │
 └── docs/
     └── architecture.md
-```
+Security
 
-## Use cases
+Security is an important part of the project design.
 
-This type of integration can be useful for:
+The following information must never be committed to GitHub:
 
-* Email-based support workflows
-* Incident management
-* Internal service desks
-* Customer communication
-* Help desk automation
-* IT operations
-* Jira-based ticket management
+Jira API tokens.
+Passwords.
+Personal access tokens.
+Private email addresses.
+Private infrastructure URLs.
+Authentication credentials.
 
-## License
+The repository contains placeholders only.
 
-This project is provided as an example of an automation and API integration using Google Apps Script.
+The Jira API token is stored using Google Apps Script Script Properties.
 
-Choose an appropriate open-source license before publishing a production-ready version.
+The .gitignore file also excludes common local credential and environment files.
+
+Limitations
+
+This project is intentionally lightweight and is designed as a Google Apps Script integration.
+
+It currently uses scheduled processing rather than Jira webhooks or a dedicated backend.
+
+The architecture is suitable for:
+
+Personal automation.
+Small teams.
+Internal workflows.
+Proof-of-concept integrations.
+Portfolio demonstrations.
+
+For larger production environments, additional components could be introduced, such as:
+
+Persistent databases.
+Webhooks.
+Retry queues.
+Centralized logging.
+Rate-limit handling.
+Automated testing.
+External secret management.
+CI/CD pipelines.
+Future Improvements
+
+Potential future versions could include:
+
+Jira status synchronization.
+Configurable Jira priorities and labels.
+Multiple Jira projects.
+Improved email parsing.
+Rich HTML email support.
+Webhook-based processing.
+Retry and error handling.
+Automated tests.
+CI/CD integration.
+More advanced configuration management.
+
+These features are intentionally outside the scope of the initial 1.0.0 release.
+
+Version
+
+Current version:
+
+1.0.0
+
+The project follows Semantic Versioning.
+
+See the CHANGELOG for the release history.
+
+License
+
+This project is licensed under the MIT License.
+
+See the LICENSE file for details.
